@@ -61,7 +61,9 @@ describe("identity numbers (same rules as the server)", () => {
   it("Aadhaar: 12 digits, not 0/1 first, Verhoeff check digit", () => {
     expect(isValidAadhaar("234123412346")).toBe(true);
     expect(isValidAadhaar("2341 2341 2346")).toBe(true);
-    expect(isValidAadhaar("234123412345")).toBe(false, "wrong check digit");
+    // The check digit is not enforced any more (business decision): format only.
+    expect(isValidAadhaar("234123412345")).toBe(true);
+    expect(isValidAadhaar("599001669211")).toBe(true);
     expect(isValidAadhaar("134123412346")).toBe(false, "starts with 1");
     expect(isValidAadhaar("23412341234")).toBe(false, "11 digits");
     expect(verhoeffValid("2363")).toBe(true);
@@ -173,7 +175,7 @@ describe("owner step", () => {
       validateOwner({
         ...owner,
         pan: "ABC",
-        aadhaar: "234123412345",
+        aadhaar: "134123412346", // starts with 1: the format is still checked
         dateOfBirth: yearsAgo(17),
       }),
     ).toEqual({

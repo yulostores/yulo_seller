@@ -190,7 +190,7 @@ describe("Onboarding wizard", () => {
     expect(await screen.findByText("Unknown category")).toBeTruthy();
   });
 
-  it("Owner: PAN, Aadhaar (checksum) and 18+ are checked before saving", async () => {
+  it("Owner: PAN, Aadhaar (format) and 18+ are checked before saving", async () => {
     onboardingApi.get.mockResolvedValue(
       view({
         business: businessDone,
@@ -207,7 +207,7 @@ describe("Onboarding wizard", () => {
       tooYoung.toISOString().slice(0, 10),
     );
     await user.type(screen.getByLabelText("PAN"), "ABC123");
-    await user.type(screen.getByLabelText("Aadhaar number"), "234123412345");
+    await user.type(screen.getByLabelText("Aadhaar number"), "134123412346");
     await user.click(screen.getByRole("button", { name: "Save and continue" }));
     expect(screen.getByText("The owner must be at least 18")).toBeTruthy();
     expect(screen.getByText("Enter a valid PAN, e.g. ABCDE1234F")).toBeTruthy();
