@@ -38,6 +38,13 @@ const PLANS = [
     price: { base: 5000, gst: 900, total: 5900 },
     isActive: true,
     sortOrder: 1,
+    online: {
+      handlingFeePercent: 3.5,
+      handlingFeePaise: 17500,
+      gstPaise: 93150,
+      totalPaise: 610650,
+      price: { base: 5000, handlingFee: 175, gst: 931.5, total: 6106.5 },
+    },
   },
   {
     _id: "p2",
@@ -51,6 +58,13 @@ const PLANS = [
     price: { base: 15000, gst: 2700, total: 17700 },
     isActive: true,
     sortOrder: 2,
+    online: {
+      handlingFeePercent: 3.5,
+      handlingFeePaise: 52500,
+      gstPaise: 279450,
+      totalPaise: 1831950,
+      price: { base: 15000, handlingFee: 525, gst: 2794.5, total: 18319.5 },
+    },
   },
   {
     _id: "p3",
@@ -64,6 +78,13 @@ const PLANS = [
     price: { base: 50000, gst: 9000, total: 59000 },
     isActive: true,
     sortOrder: 3,
+    online: {
+      handlingFeePercent: 3.5,
+      handlingFeePaise: 175000,
+      gstPaise: 931500,
+      totalPaise: 6106500,
+      price: { base: 50000, handlingFee: 1750, gst: 9315, total: 61065 },
+    },
   },
 ];
 
@@ -120,23 +141,47 @@ beforeEach(() => {
 afterEach(() => vi.clearAllMocks());
 
 describe("Plans — what's shown", () => {
-  it("three plan cards with the API's numbers: base, GST, total, coupons", async () => {
+  // Production, before the seed script was run: no plans existed and the page showed nothing.
+  it("no plans on sale: says so instead of an empty space", async () => {
+    plansApi.list.mockResolvedValue([]);
+    render();
+    expect(
+      await screen.findByText(
+        "No plans are on sale right now. Please contact Yulo.",
+      ),
+    ).toBeTruthy();
+  });
+
+  it("three plan cards: price, 3.5% payment handling fee, GST on both, online total; offline price noted", async () => {
     render();
     const basic = await screen.findByTestId("plan-basic");
     expect(within(basic).getByText("250 coupons")).toBeTruthy();
     expect(within(basic).getByText("₹5,000")).toBeTruthy();
+    expect(within(basic).getByText("Payment handling fee (3.5%)")).toBeTruthy();
+    expect(within(basic).getByText("₹175")).toBeTruthy();
     expect(within(basic).getByText("GST (18%)")).toBeTruthy();
-    expect(within(basic).getByText("₹900")).toBeTruthy();
-    expect(within(basic).getByText("₹5,900")).toBeTruthy();
+    expect(within(basic).getByText("₹931.50")).toBeTruthy();
+    expect(within(basic).getByTestId("total-basic").textContent).toBe(
+      "₹6,106.50",
+    );
     expect(
-      within(basic).getByText("₹23.6 per coupon, GST included"),
+      within(basic).getByText("₹24.43 per coupon, all included"),
     ).toBeTruthy();
+    expect(within(basic).getByTestId("offline-basic").textContent).toContain(
+      "₹5,900 incl. GST — no handling fee",
+    );
+    expect(screen.getByTestId("total-plus").textContent).toBe("₹18,319.50");
     const premium = screen.getByTestId("plan-premium");
     expect(within(premium).getByText("4,000 coupons")).toBeTruthy();
-    expect(within(premium).getByText("₹59,000")).toBeTruthy();
-    expect(
-      within(screen.getByTestId("plan-plus")).getByText("₹17,700"),
-    ).toBeTruthy();
+    expect(screen.getByTestId("total-premium").textContent).toBe("₹61,065");
+  });
+
+  it("an older API without the online breakdown still shows price + GST", async () => {
+    plansApi.list.mockResolvedValue(PLANS.map(({ online, ...p }) => p));
+    render();
+    const basic = await screen.findByTestId("plan-basic");
+    expect(within(basic).queryByText(/handling fee/)).toBeNull();
+    expect(within(basic).getByTestId("total-basic").textContent).toBe("₹5,900");
   });
 
   it("no plan yet: says so, and 'Choose a plan'", async () => {

@@ -141,6 +141,10 @@ export default function PlansPage() {
           <Spinner />
         ) : plans.isError ? (
           <LoadError error={plans.error} onRetry={plans.refetch} />
+        ) : plans.data.length === 0 ? (
+          <p className="rounded-xl border border-dashed bg-white p-6 text-center text-sm text-muted-foreground">
+            No plans are on sale right now. Please contact Yulo.
+          </p>
         ) : (
           <div className="grid gap-4 md:grid-cols-3">
             {plans.data.map((p) => (
@@ -255,6 +259,9 @@ function PlanCard({ plan, canBuy, busy, working, state, onBuy }) {
         ? "Confirming…"
         : "Starting…"
     : `Buy ${plan.name}`;
+  // Online purchases add the payment handling fee; an older API without it shows the plain price.
+  const online = plan.online ?? null;
+  const totalPaise = online ? online.totalPaise : plan.totalPaise;
   return (
     <Card className="flex flex-col" data-testid={`plan-${plan.key}`}>
       <CardHeader>
@@ -264,24 +271,44 @@ function PlanCard({ plan, canBuy, busy, working, state, onBuy }) {
         </p>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-4">
+        {/* Online (Razorpay) price: plan price + payment handling fee, then GST on both. */}
         <dl className="space-y-1 text-sm">
           <div className="flex justify-between">
             <dt className="text-muted-foreground">Price</dt>
             <dd>{formatRupees(plan.price.base)}</dd>
           </div>
+          {online ? (
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">
+                Payment handling fee ({online.handlingFeePercent}%)
+              </dt>
+              <dd>{formatRupees(online.price.handlingFee)}</dd>
+            </div>
+          ) : null}
           <div className="flex justify-between">
             <dt className="text-muted-foreground">GST ({plan.gstPercent}%)</dt>
-            <dd>{formatRupees(plan.price.gst)}</dd>
+            <dd>{formatRupees(online ? online.price.gst : plan.price.gst)}</dd>
           </div>
           <div className="flex justify-between border-t pt-2 text-base font-bold">
             <dt>Total</dt>
-            <dd>{formatRupees(plan.price.total)}</dd>
+            <dd data-testid={`total-${plan.key}`}>
+              {formatRupees(online ? online.price.total : plan.price.total)}
+            </dd>
           </div>
         </dl>
         <p className="text-xs text-muted-foreground">
-          {formatPaise(Math.round(plan.totalPaise / plan.couponAllocation))} per
-          coupon, GST included
+          {formatPaise(Math.round(totalPaise / plan.couponAllocation))} per
+          coupon, all included
         </p>
+        {online ? (
+          <p
+            className="text-xs text-muted-foreground"
+            data-testid={`offline-${plan.key}`}
+          >
+            Paying Yulo directly (bank transfer, UPI, cheque)?{" "}
+            {formatRupees(plan.price.total)} incl. GST — no handling fee.
+          </p>
+        ) : null}
         <div className="mt-auto">
           {canBuy ? (
             <Button className="w-full" disabled={busy} onClick={onBuy}>
