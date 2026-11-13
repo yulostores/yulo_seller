@@ -61,16 +61,18 @@ describe("Offers", () => {
     const user = userEvent.setup();
     render();
     await user.click(await screen.findByRole("button", { name: "New offer" }));
+    // Validity is fixed at 30 days: no field for it, just the rule stated.
+    expect(screen.queryByLabelText(/Valid for/)).toBeNull();
+    expect(
+      screen.getByText(/Customers can use each coupon for 30 days/),
+    ).toBeTruthy();
     await user.type(screen.getByLabelText("Title"), "ab");
-    await user.type(screen.getByLabelText("Valid for (days, optional)"), "400");
     await user.click(screen.getByRole("button", { name: "Save as draft" }));
     expect(screen.getByText("Give the offer a short title")).toBeTruthy();
-    expect(screen.getByText("Whole days from 1 to 365")).toBeTruthy();
     expect(offersApi.create).not.toHaveBeenCalled();
 
     await user.clear(screen.getByLabelText("Title"));
     await user.type(screen.getByLabelText("Title"), "  Free head massage ");
-    await user.clear(screen.getByLabelText("Valid for (days, optional)"));
     await user.type(
       screen.getByLabelText("Terms (optional)"),
       "With any haircut",
@@ -79,7 +81,6 @@ describe("Offers", () => {
     expect(offersApi.create).toHaveBeenCalledWith({
       title: "Free head massage",
       terms: "With any haircut",
-      validityDays: null,
     });
     expect(await screen.findByTestId("offer-o9")).toBeTruthy();
     expect(screen.queryByLabelText("Title")).toBeNull();
@@ -108,7 +109,6 @@ describe("Offers", () => {
     expect(offersApi.update).toHaveBeenCalledWith("o1", {
       title: "25% off any haircut",
       terms: "Weekdays only",
-      validityDays: 30,
     });
     expect(
       within(await screen.findByTestId("offer-o1")).getByText("In review"),
@@ -183,15 +183,14 @@ describe("Offers", () => {
       validateOffer({
         title: "x".repeat(121),
         terms: "y".repeat(2001),
-        validityDays: "1.5",
       }),
     ).toEqual({
       title: "At most 120 characters",
       terms: "At most 2,000 characters",
-      validityDays: "Whole days from 1 to 365",
     });
-    expect(
-      offerBody({ title: " A b c ", terms: " t ", validityDays: "45" }),
-    ).toEqual({ title: "A b c", terms: "t", validityDays: 45 });
+    expect(offerBody({ title: " A b c ", terms: " t " })).toEqual({
+      title: "A b c",
+      terms: "t",
+    });
   });
 });

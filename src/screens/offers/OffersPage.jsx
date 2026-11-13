@@ -30,18 +30,15 @@ export function validateOffer(f) {
   if (title.length < 3) e.title = "Give the offer a short title";
   else if (title.length > 120) e.title = "At most 120 characters";
   if (f.terms.trim().length > 2000) e.terms = "At most 2,000 characters";
-  if (f.validityDays !== "") {
-    const n = Number(f.validityDays);
-    if (!Number.isInteger(n) || n < 1 || n > 365)
-      e.validityDays = "Whole days from 1 to 365";
-  }
   return e;
 }
+
+// Every coupon is valid for a fixed 30 days (set by Yulo), so an offer has no validity of its own.
+export const COUPON_VALIDITY_DAYS = 30;
 
 export const offerBody = (f) => ({
   title: f.title.trim(),
   terms: f.terms.trim(),
-  validityDays: f.validityDays === "" ? null : Number(f.validityDays),
 });
 
 /**
@@ -144,9 +141,7 @@ function OfferCard({ offer, onEdit, onChanged }) {
             </p>
           ) : null}
           <p className="mt-1 text-xs text-muted-foreground">
-            {offer.validityDays
-              ? `Valid ${offer.validityDays} days from when the customer gets it`
-              : "Valid for the standard period"}{" "}
+            {`Valid ${offer.validityDays ?? COUPON_VALIDITY_DAYS} days from when the customer gets it`}{" "}
             · updated {formatDate(offer.updatedAt)}
           </p>
         </div>
@@ -196,7 +191,6 @@ function OfferForm({ offer, onSaved, onCancel }) {
   const [f, setF] = useState({
     title: offer?.title ?? "",
     terms: offer?.terms ?? "",
-    validityDays: offer?.validityDays ?? "",
   });
   const [errors, setErrors] = useState({});
   const [error, setError] = useState("");
@@ -258,18 +252,10 @@ function OfferForm({ offer, onSaved, onCancel }) {
               <p className="mt-1.5 text-xs text-red-600">{errors.terms}</p>
             ) : null}
           </div>
-          <TextField
-            id="offer-validity"
-            label="Valid for (days, optional)"
-            type="number"
-            min={1}
-            max={365}
-            value={f.validityDays}
-            onChange={set("validityDays")}
-            error={errors.validityDays}
-            hint="Leave blank for Yulo's standard validity."
-            className="max-w-xs"
-          />
+          <p className="text-sm text-muted-foreground">
+            Customers can use each coupon for {COUPON_VALIDITY_DAYS} days from
+            when they get it.
+          </p>
           {live ? (
             <p
               role="note"
